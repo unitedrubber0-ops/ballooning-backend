@@ -8,9 +8,14 @@ import json
 import shutil
 import tempfile
 import traceback
+import subprocess
 from docx import Document
 import fitz  # PyMuPDF
 from pathlib import Path
+
+# Define upload directory
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -247,7 +252,7 @@ def fill_doc_template():
 
 if __name__ == '__main__':
     print("Starting Flask server...")
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 # Helper function to convert .doc to .docx if needed
 def convert_doc_to_docx(path):

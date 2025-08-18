@@ -8,10 +8,23 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Copy the rest of the application
 COPY . .
-EXPOSE 8000
+
+# Create uploads directory
+RUN mkdir -p uploads && chmod 777 uploads
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Environment variables
+ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
-CMD ["python", "app.py"]
+
+# Start with gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
