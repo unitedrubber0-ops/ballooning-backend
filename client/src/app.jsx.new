@@ -1,0 +1,59 @@
+import React, { useState, useEffect } from 'react';
+import "./styles.css";
+
+export default function App() {
+  const [file, setFile] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [balloons, setBalloons] = useState([]);
+
+  useEffect(() => {
+    // Cleanup previous URL when component unmounts or when file changes
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
+  function handleFileChange(event) {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      const url = URL.createObjectURL(selectedFile);
+      setPdfUrl(url);
+      console.log('File selected:', selectedFile.name);
+    }
+  }
+
+  return (
+    <div className="container">
+      <div className="controls">
+        <h1>PDF Ballooning Tool</h1>
+        <div className="upload-section">
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+          />
+        </div>
+        {file && (
+          <p className="file-info">
+            Selected file: {file.name}
+          </p>
+        )}
+      </div>
+      
+      <div className="pdf-section">
+        {pdfUrl && (
+          <iframe
+            src={pdfUrl}
+            width="100%"
+            height="800px"
+            style={{ border: 'none' }}
+            title="PDF Viewer"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
