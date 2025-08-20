@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 import "./styles.css";
@@ -9,7 +9,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 export default function App() {
   const [file, setFile] = useState(null);
   const canvasRef = useRef(null);
-  const pdfContainerRef = useRef(null); // NEW: Ref for the PDF container div
+  const pdfContainerRef = useRef(null);
   const [fileName, setFileName] = useState('');
   const [balloons, setBalloons] = useState([]);
   const [selectedType, setSelectedType] = useState('Diameter');
@@ -21,8 +21,6 @@ export default function App() {
   const [editingBalloonId, setEditingBalloonId] = useState(null);
   const [editText, setEditText] = useState('');
 
-  // ... (All handler functions like handleDownloadDocx, handleAddCustomType, etc. remain the same) ...
-  // Download DOCX report
   const handleDownloadDocx = async () => {
     try {
       if (!balloons || balloons.length === 0) {
@@ -87,7 +85,11 @@ export default function App() {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       
-      const renderContext = { canvasContext: context, viewport: viewport };
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+      
       await page.render(renderContext).promise;
       
     } catch (error) {
@@ -189,17 +191,21 @@ export default function App() {
     }
   }, [file, balloons, zoomLevel]);
 
-  // NEW: useEffect to handle Ctrl + Scroll for zooming
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prevZoom => prevZoom + 0.25);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prevZoom => Math.max(0.25, prevZoom - 0.25));
+  }, []);
+
   useEffect(() => {
     const container = pdfContainerRef.current;
     if (!container) return;
 
     const handleWheel = (event) => {
-      // Check if the Ctrl key is pressed
       if (event.ctrlKey) {
-        event.preventDefault(); // Prevent the default page zoom
-        
-        // event.deltaY is negative when scrolling up (zoom in), positive when scrolling down (zoom out)
+        event.preventDefault();
         if (event.deltaY < 0) {
           handleZoomIn();
         } else {
@@ -210,18 +216,39 @@ export default function App() {
     
     container.addEventListener('wheel', handleWheel, { passive: false });
 
-    // Cleanup function to remove the event listener
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [handleZoomIn, handleZoomOut]); // Add dependencies
+  }, [handleZoomIn, handleZoomOut]);
 
   const handleExportPDF = async () => {
-    // ... logic for exporting to PDF ...
-  };
+    if (!file || !canvasRef.current) return;
 
-  const handleZoomIn = () => setZoomLevel(prevZoom => prevZoom + 0.25);
-  const handleZoomOut = () => setZoomLevel(prevZoom => Math.max(0.25, prevZoom - 0.25));
+    try {
+      const canvas = canvasRef.current;
+      const imgData = canvas.toDataURL('image/png');
+      const a4Width = 595.28;
+      const a4Height = 841.89;
+      const imgAspect = canvas.width / canvas.height;
+      let pdfWidth = a4Width;
+      let pdfHeight = a4Width / imgAspect;
+      if (pdfHeight > a4Height) {
+        pdfHeight = a4Height;
+        pdfWidth = a4Height * imgAspect;
+      }
+      const pdf = new jsPDF({
+        orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+        unit: 'pt',
+        format: [a4Width, a4Height]
+      });
+      const x = (a4Width - pdfWidth) / 2;
+      const y = (a4Height - pdfHeight) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, pdfWidth, pdfHeight);
+      pdf.save(`annotated_${fileName || 'document'}.pdf`);
+    } catch (error) {
+      console.error('Error exporting annotated PDF:', error);
+    }
+  };
 
   const handleStartEditing = (balloon) => {
     setEditingBalloonId(balloon.id);
@@ -236,7 +263,6 @@ export default function App() {
   return (
     <div className="container">
       <div className="sidebar">
-        {/* ... (The entire sidebar JSX remains exactly the same) ... */}
         <h1>PDF Ballooning Tool</h1>
         
         <div className="upload-section">
@@ -330,7 +356,6 @@ export default function App() {
         </div>
       </div>
       
-      {/* MODIFIED: Add the ref to the container */}
       <div className="pdf-container" ref={pdfContainerRef}> 
         <div className="zoom-controls">
             <button onClick={handleZoomOut}>-</button>
