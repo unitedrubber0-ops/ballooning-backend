@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import "./styles.css";
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
 export default function App() {
   const [file, setFile] = useState(null);
@@ -204,7 +204,7 @@ export default function App() {
       formData.append('x', nx * canvas.width); // Convert to absolute coordinates
       formData.append('y', ny * canvas.height); // Convert to absolute coordinates
 
-      const response = await fetch('http://localhost:5000/api/resolve-balloon', {
+      const response = await fetch('/api/resolve-balloon', {
         method: 'POST',
         body: formData
       });
