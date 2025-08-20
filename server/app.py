@@ -4,6 +4,8 @@ import fitz  # PyMuPDF
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from docx import Document
+from docx.table import _Row
+from docx.oxml.ns import qn
 import tempfile
 import traceback
 
@@ -14,60 +16,21 @@ CORS(app)
 # --- Helper Functions ---
 
 def extract_words_from_pdf(pdf_path, page_no=0):
-    # ... (This function is good, no changes needed)
-    doc = fitz.open(pdf_path)
-    page = doc[page_no]
-    words = page.get_text("words")
-    spans = []
-    for w in words:
-        spans.append({
-            "x0": w[0], "y0": w[1], "x1": w[2], "y1": w[3],
-            "text": w[4], "cx": (w[0] + w[2]) / 2, "cy": (w[1] + w[3]) / 2
-        })
+    # This function is working well, no changes needed.
+    doc = fitz.open(pdf_path); page = doc[page_no]; words = page.get_text("words")
+    spans = [{"x0": w[0], "y0": w[1], "x1": w[2], "y1": w[3], "text": w[4], "cx": (w[0] + w[2]) / 2, "cy": (w[1] + w[3]) / 2} for w in words]
     return spans
 
 def find_nearby_text(spans, x, y, maxdist=50):
-    # ... (This function is good, no changes needed)
-    nearby = []
-    for span in spans:
-        dx = span["cx"] - x; dy = span["cy"] - y
-        dist = (dx*dx + dy*dy)**0.5
-        if dist <= maxdist:
-            nearby.append(span["text"])
+    # This function is working well, no changes needed.
+    nearby = [span["text"] for span in spans if ((span["cx"] - x)**2 + (span["cy"] - y)**2)**0.5 <= maxdist]
     return nearby
-
-def docx_replace(doc, replacements):
-    """
-    A robust function to find and replace text placeholders in a .docx file,
-    preserving formatting.
-    """
-    for key, value in replacements.items():
-        placeholder = f"{{{{{key}}}}}"
-        # Replace in all paragraphs
-        for p in doc.paragraphs:
-            if placeholder in p.text:
-                inline = p.runs
-                for i in range(len(inline)):
-                    if placeholder in inline[i].text:
-                        inline[i].text = inline[i].text.replace(placeholder, str(value))
-        # Replace in all tables
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for p in cell.paragraphs:
-                        if placeholder in p.text:
-                            inline = p.runs
-                            for i in range(len(inline)):
-                                if placeholder in inline[i].text:
-                                    inline[i].text = inline[i].text.replace(placeholder, str(value))
-    return doc
-
 
 # --- API Endpoints ---
 
 @app.route('/api/resolve-balloon', methods=['POST'])
 def resolve_balloon():
-    # ... (This endpoint is good, no changes needed)
+    # This endpoint is working well, no changes needed.
     try:
         if 'pdf' not in request.files: return jsonify({'error': 'No PDF file provided'}), 400
         pdf_file = request.files['pdf']; x = float(request.form['x']); y = float(request.form['y'])
@@ -80,106 +43,87 @@ def resolve_balloon():
     except Exception as e:
         print(f"[ERROR] in /api/resolve-balloon: {traceback.format_exc()}"); return jsonify({'error': str(e)}), 500
 
+# In server/app.py, replace the existing generate_report function with this one.
+
+# In server/app.py, replace the existing generate_report function with this one.
+
 @app.route('/api/generate-report', methods=['POST'])
 def generate_report():
     output_filename = None
     try:
         print("\n--- [INFO] Received /api/generate-report request ---")
         
-        # --- 1. Get Data ---
         balloons_json = request.form.get('balloons')
         if not balloons_json:
-            print("[ERROR] No balloon data provided in the form.")
-            return jsonify({"error": "No balloon data provided"}), 400
+            print("[ERROR] No balloon data received."); return jsonify({"error": "No balloon data provided"}), 400
         
         balloon_data = json.loads(balloons_json)
-        print(f"[DEBUG] Received {len(balloon_data)} balloons: {json.dumps(balloon_data, indent=2)}")
+        print(f"[DEBUG] Received {len(balloon_data)} balloons.")
 
-        # Hardcoded metadata for simplicity. Can be received from frontend later.
-        metadata = {
-            'customer_name': 'POLARIS', 'part_number': '5419070', 'report_date': '04/04/2025',
-            'quantity': str(len(balloon_data)), 'prepared_by': 'Sudesh', 'verified_by': 'Dr. Sushant Maity'
-        }
-        print(f"[DEBUG] Metadata for report: {metadata}")
-
-        # --- 2. Load Template ---
         template_path = "report_template.docx"
         if not os.path.exists(template_path):
-             print(f"[ERROR] Template file not found at: {template_path}")
-             return jsonify({"error": "Template file not found on server"}), 500
+             print(f"[ERROR] Template file not found at: {template_path}"); return jsonify({"error": "Template not found"}), 500
         
         doc = Document(template_path)
         print(f"[INFO] Loaded template: {template_path}")
 
-        # --- 3. Replace Header/Footer Placeholders ---
-        doc = docx_replace(doc, metadata)
-        print("[INFO] Replaced header/footer metadata placeholders.")
-
-        # --- 4. Populate the Dynamic Table ---
-        if not doc.tables:
-            print("[ERROR] No tables found in the document template.")
-            return jsonify({"error": "Template is missing a table."}), 500
-            
         table = doc.tables[0]
-        template_row = table.rows[1] # The row with placeholders (e.g., {{id}})
+        template_row = table.rows[1]
         
         print(f"[INFO] Found table. Template row has {len(template_row.cells)} cells.")
 
         for balloon in balloon_data:
             new_row = table.add_row()
-            # Copy cells from template to new row to preserve structure
+            # Copy cells to preserve structure, formatting, AND the static text
             for i, cell in enumerate(template_row.cells):
-                new_row.cells[i].text = cell.text
-            
-            # Create a dictionary of replacements for this specific balloon
+                for paragraph in cell.paragraphs:
+                    # This copies everything from the template cell, including "OK"
+                    new_para = new_row.cells[i].add_paragraph(paragraph.text)
+
+            # Define ONLY the replacements for the dynamic placeholders
             replacements = {
-                'id': balloon.get('id', ''),
-                'text': balloon.get('text', 'N/A'),
-                'inspection_method': "Checking Fixture", # Example static value
-                'remarks': balloon.get('type', '')
+                '{{id}}': str(balloon.get('id', '')),
+                '{{text}}': balloon.get('text', 'N/A'),
+                '{{spec}}': "As per Drg.",
+                '{{spec_drg}}': "As per Drg.",
+                '{{UOM}}': "mm"
             }
             
             # Replace placeholders in the newly created row
             for cell in new_row.cells:
                 for key, value in replacements.items():
-                    placeholder = f"{{{{{key}}}}}"
-                    if placeholder in cell.text:
-                       # This simple replace is fine here since we just copied plain text
-                       cell.text = cell.text.replace(placeholder, str(value))
+                    for p in cell.paragraphs:
+                        if key in p.text:
+                            inline = p.runs
+                            for i in range(len(inline)):
+                                if key in inline[i].text:
+                                    inline[i].text = inline[i].text.replace(key, value)
         
         # Delete the original template row
-        tbl = table._tbl
-        tr_to_remove = template_row._tr
-        tbl.remove(tr_to_remove)
-        print(f"[INFO] Populated table with {len(balloon_data)} new rows and removed template row.")
+        tr_to_remove = template_row._element
+        tr_to_remove.getparent().remove(tr_to_remove)
+        print(f"[INFO] Populated table with {len(balloon_data)} new rows.")
 
-        # --- 5. Save and Send ---
         with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
             output_filename = tmp.name
             doc.save(output_filename)
-            print(f"[INFO] Saved filled document to temporary file: {output_filename}")
 
         return send_file(
-            output_filename,
-            as_attachment=True,
-            download_name='generated_report.docx',
+            output_filename, as_attachment=True, download_name='generated_report.docx',
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
 
     except Exception as e:
-        print(f"[FATAL ERROR] in /api/generate-report: {traceback.format_exc()}")
-        return jsonify({"error": "An internal server error occurred"}), 500
+        print(f"[FATAL ERROR] in /api/generate-report: {traceback.format_exc()}"); return jsonify({"error": "Server error"}), 500
     finally:
         if output_filename and os.path.exists(output_filename):
             os.remove(output_filename)
-            print(f"[INFO] Cleaned up temporary file: {output_filename}")
         print("--- [INFO] Request finished. ---\n")
 
 # --- Serving the Frontend ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    # ... (This part is good, no changes needed)
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
@@ -187,4 +131,4 @@ def serve(path):
 
 # --- Main Execution ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
