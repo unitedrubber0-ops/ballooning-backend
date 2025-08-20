@@ -21,6 +21,56 @@ export default function App() {
   const [editingBalloonId, setEditingBalloonId] = useState(null);
   const [editText, setEditText] = useState('');
 
+  const handleGenerateReport = async () => {
+    if (!balloons || balloons.length === 0) {
+      alert('Please add some balloons first');
+      return;
+    }
+
+    try {
+      // 1. Structure the data for the backend
+      const reportData = balloons.map(balloon => ({
+        id: balloon.id,
+        type: balloon.type, // This will go into the 'Remarks' column
+        text: balloon.nearby ? balloon.nearby.join(', ') : 'N/A' // The resolved text
+      }));
+
+      // 2. Use FormData to send the data
+      const formData = new FormData();
+      formData.append('balloons', JSON.stringify(reportData));
+
+      // 3. Make the API call to our new endpoint
+      const response = await fetch('/api/generate-report', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
+      }
+
+      // 4. Handle the file download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'generated_report.docx';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert(`Error generating report: ${error.message}`);
+    }
+  };
+
   const handleDownloadDocx = async () => {
     try {
       if (!balloons || balloons.length === 0) {
@@ -350,7 +400,7 @@ export default function App() {
           {balloons.length > 0 && (
             <div className="button-group">
               <button onClick={handleExportPDF} className="export-button">Export PDF</button>
-              <button onClick={handleDownloadDocx} className="generate-button">Generate Report</button>
+              <button onClick={handleGenerateReport} className="generate-button">Generate Report</button>
             </div>
           )}
         </div>
