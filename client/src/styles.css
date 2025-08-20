@@ -179,10 +179,10 @@ h1 {
   background: #e0e0e0;
   padding: 20px;
   display: flex;
-  justify-content: center;
+  /* justify-content: center; */ /* <-- THIS LINE IS REMOVED */
   align-items: flex-start;
   overflow: auto;
-  position: relative; /* <-- NEW: Needed for positioning zoom controls */
+  position: relative;
 }
 
 .pdf-canvas {

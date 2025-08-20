@@ -1,16 +1,15 @@
-// client/src/app.jsx - COMPLETE CODE
-
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 import "./styles.css";
 
-// Configure PDF.js worker to be self-hosted (Fixes the CORS issue)
+// Configure PDF.js worker to be self-hosted
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
 export default function App() {
   const [file, setFile] = useState(null);
   const canvasRef = useRef(null);
+  const pdfContainerRef = useRef(null); // NEW: Ref for the PDF container div
   const [fileName, setFileName] = useState('');
   const [balloons, setBalloons] = useState([]);
   const [selectedType, setSelectedType] = useState('Diameter');
@@ -18,14 +17,11 @@ export default function App() {
   const [types, setTypes] = useState([
     'Diameter', 'Length', 'Width', 'Height', 'X', 'Y', 'Z', 'Angle', 'Radius'
   ]);
-
-  // STATE for Zooming
   const [zoomLevel, setZoomLevel] = useState(1.5);
-
-  // STATE for Editing
   const [editingBalloonId, setEditingBalloonId] = useState(null);
   const [editText, setEditText] = useState('');
 
+  // ... (All handler functions like handleDownloadDocx, handleAddCustomType, etc. remain the same) ...
   // Download DOCX report
   const handleDownloadDocx = async () => {
     try {
@@ -193,6 +189,33 @@ export default function App() {
     }
   }, [file, balloons, zoomLevel]);
 
+  // NEW: useEffect to handle Ctrl + Scroll for zooming
+  useEffect(() => {
+    const container = pdfContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (event) => {
+      // Check if the Ctrl key is pressed
+      if (event.ctrlKey) {
+        event.preventDefault(); // Prevent the default page zoom
+        
+        // event.deltaY is negative when scrolling up (zoom in), positive when scrolling down (zoom out)
+        if (event.deltaY < 0) {
+          handleZoomIn();
+        } else {
+          handleZoomOut();
+        }
+      }
+    };
+    
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Cleanup function to remove the event listener
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleZoomIn, handleZoomOut]); // Add dependencies
+
   const handleExportPDF = async () => {
     // ... logic for exporting to PDF ...
   };
@@ -213,6 +236,7 @@ export default function App() {
   return (
     <div className="container">
       <div className="sidebar">
+        {/* ... (The entire sidebar JSX remains exactly the same) ... */}
         <h1>PDF Ballooning Tool</h1>
         
         <div className="upload-section">
@@ -305,7 +329,9 @@ export default function App() {
           )}
         </div>
       </div>
-      <div className="pdf-container">
+      
+      {/* MODIFIED: Add the ref to the container */}
+      <div className="pdf-container" ref={pdfContainerRef}> 
         <div className="zoom-controls">
             <button onClick={handleZoomOut}>-</button>
             <span>{Math.round(zoomLevel * 100)}%</span>
