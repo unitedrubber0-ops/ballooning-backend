@@ -8,9 +8,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 export default function PdfCanvas({ fileUrl, containerRef, onClick }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [orientation, setOrientation] = useState('portrait');
+  const [rotation, setRotation] = useState(0);
+  const [zoom, setZoom] = useState(100);
   const [pageSize, setPageSize] = useState({ width: 794, height: 1123 });
-  const [autoOrientation, setAutoOrientation] = useState(true);
 
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
@@ -26,55 +26,67 @@ export default function PdfCanvas({ fileUrl, containerRef, onClick }) {
   return (
     <>
       <div className="pdf-controls">
-        <div className="orientation-control">
-          <label>Orientation:</label>
-          <button
-            className={`orientation-button ${orientation === 'portrait' ? 'active' : ''}`}
-            onClick={() => {
-              setOrientation('portrait');
-              setAutoOrientation(false);
-            }}
+        <div className="zoom-control">
+          <label>Zoom:</label>
+          <button 
+            className="control-button"
+            onClick={() => setZoom(prev => Math.max(25, prev - 25))}
           >
-            Portrait
+            -
           </button>
-          <button
-            className={`orientation-button ${orientation === 'landscape' ? 'active' : ''}`}
-            onClick={() => {
-              setOrientation('landscape');
-              setAutoOrientation(false);
-            }}
+          <span>{zoom}%</span>
+          <button 
+            className="control-button"
+            onClick={() => setZoom(prev => Math.min(400, prev + 25))}
           >
-            Landscape
+            +
           </button>
-          <button
-            className={`orientation-button ${autoOrientation ? 'active' : ''}`}
-            onClick={() => setAutoOrientation(true)}
+        </div>
+        <div className="rotate-control">
+          <label>Rotate:</label>
+          <button 
+            className="control-button"
+            onClick={() => setRotation(prev => (prev + 90) % 360)}
           >
-            Auto
+            <span style={{ display: 'inline-block', transform: 'rotate(90deg)' }}>↻</span>
+          </button>
+          <button 
+            className="control-button"
+            onClick={() => setRotation(0)}
+          >
+            Reset
           </button>
         </div>
       </div>
       <div className="pdf-view-container">
         <div 
           ref={containerRef} 
-          className={`pdf-canvas ${orientation}`} 
+          className="pdf-canvas"
+          style={{
+            transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+            transformOrigin: 'center center'
+          }}
           onClick={e => {
-          if (!containerRef.current) return;
-          const r = containerRef.current.getBoundingClientRect();
-          const rect = e.target.getBoundingClientRect();
-          let nx, ny;
-          
-          if (orientation === 'landscape') {
-            // Adjust coordinates for landscape orientation
-            nx = (e.clientY - rect.top) / rect.height;
-            ny = 1 - ((e.clientX - rect.left) / rect.width);
-          } else {
-            nx = (e.clientX - rect.left) / rect.width;
-            ny = (e.clientY - rect.top) / rect.height;
-          }
-          
-          onClick({ nx, ny });
-        }}
+            if (!containerRef.current) return;
+            const rect = e.target.getBoundingClientRect();
+            const rotationRad = (rotation * Math.PI) / 180;
+            
+            // Get click coordinates relative to the center of the element
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const relativeX = e.clientX - centerX;
+            const relativeY = e.clientY - centerY;
+            
+            // Apply inverse rotation to get original coordinates
+            const rotatedX = relativeX * Math.cos(-rotationRad) - relativeY * Math.sin(-rotationRad);
+            const rotatedY = relativeX * Math.sin(-rotationRad) + relativeY * Math.cos(-rotationRad);
+            
+            // Convert back to normalized coordinates
+            const nx = (rotatedX / rect.width) + 0.5;
+            const ny = (rotatedY / rect.height) + 0.5;
+            
+            onClick({ nx, ny });
+          }}
       >
         <Document
           file={fileUrl}
@@ -85,13 +97,11 @@ export default function PdfCanvas({ fileUrl, containerRef, onClick }) {
           <Page 
             pageNumber={pageNumber}
             className="pdf-page"
-            width={containerRef.current ? 
-              Math.min(1123, containerRef.current.offsetWidth - 80) : 794
-            }
+            width={794} // A4 width in pixels
             renderTextLayer={true}
             renderAnnotationLayer={true}
             loading={<div>Loading page...</div>}
-            error={<div>Error loading page!</div>}
+            error={<div>Error loading page...</div>}
             onLoadSuccess={onPageLoadSuccess}
           />
         </Document>

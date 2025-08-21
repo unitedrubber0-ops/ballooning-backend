@@ -191,12 +191,12 @@ h1 {
   border-radius: 4px;
   margin-bottom: 10px;
   display: flex;
-  gap: 10px;
+  gap: 20px;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.balloon-size-control {
+.zoom-control, .rotate-control, .balloon-size-control {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -218,7 +218,7 @@ h1 {
   background: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   cursor: crosshair;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -226,6 +226,49 @@ h1 {
   padding: 20px;
   margin: 20px;
   max-height: calc(100vh - 160px);  /* Account for controls and margins */
+}
+
+.control-button {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.control-button:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.control-button:active {
+  background: #e0e0e0;
+}
+
+.pdf-controls label {
+  color: #666;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.zoom-control, .rotate-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-control span {
+  min-width: 60px;
+  text-align: center;
+  font-size: 0.9em;
+  color: #666;
 }
 
 .pdf-canvas.landscape {
@@ -247,11 +290,12 @@ h1 {
 
 /* Style for the actual PDF page */
 .pdf-page {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: none !important; /* Allow zooming beyond container width */
+  max-height: none !important; /* Allow zooming beyond container height */
   width: auto !important;  /* Override react-pdf default width */
   height: auto !important; /* Override react-pdf default height */
   object-fit: contain;
+  transition: transform 0.3s ease;
 }
 
 .orientation-control {
