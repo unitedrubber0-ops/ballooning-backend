@@ -221,6 +221,42 @@ h1 {
   /* A4 size in pixels at 96 DPI */
   width: 794px;   /* A4 width in pixels */
   height: 1123px; /* A4 height in pixels */
+  transition: transform 0.3s ease;
+}
+
+.pdf-canvas.landscape {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  margin: 164.5px 0; /* (1123px - 794px) / 2 to center when rotated */
+}
+
+.orientation-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 15px;
+}
+
+.orientation-button {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.orientation-button.active {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.orientation-button:hover:not(.active) {
+  background: #f0f0f0;
 }
 
 /* Ensure balloons scale properly with PDF */

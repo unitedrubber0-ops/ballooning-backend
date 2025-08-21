@@ -12,9 +12,18 @@ export default function BalloonOverlay({ containerRef, balloons, setBalloons }) 
 
   const handleMouseMove = (e) => {
     if (dragIndex === null) return
-    const r = containerRef.current.getBoundingClientRect()
-    const nx = (e.clientX - r.left) / r.width
-    const ny = (e.clientY - r.top) / r.height
+    const rect = e.target.getBoundingClientRect()
+    const isLandscape = containerRef.current.classList.contains('landscape')
+    
+    let nx, ny;
+    if (isLandscape) {
+      nx = (e.clientY - rect.top) / rect.height
+      ny = 1 - ((e.clientX - rect.left) / rect.width)
+    } else {
+      nx = (e.clientX - rect.left) / rect.width
+      ny = (e.clientY - rect.top) / rect.height
+    }
+    
     setBalloons(prev => prev.map((b, i) => i === dragIndex ? { ...b, nx, ny } : b))
   }
 
