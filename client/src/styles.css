@@ -177,12 +177,12 @@ h1 {
 .pdf-container {
   flex: 1;
   background: #e0e0e0;
-  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: auto;
   position: relative;
+  height: 100%;
+  min-height: 0;  /* Important for proper flex behavior */
 }
 
 .pdf-controls {
@@ -218,16 +218,40 @@ h1 {
   background: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   cursor: crosshair;
-  /* A4 size in pixels at 96 DPI */
-  width: 794px;   /* A4 width in pixels */
-  height: 1123px; /* A4 height in pixels */
   transition: transform 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 20px;
+  margin: 20px;
+  max-height: calc(100vh - 160px);  /* Account for controls and margins */
 }
 
 .pdf-canvas.landscape {
   transform: rotate(90deg);
   transform-origin: center center;
-  margin: 164.5px 0; /* (1123px - 794px) / 2 to center when rotated */
+}
+
+/* Add container to handle the PDF sizing */
+.pdf-view-container {
+  flex: 1;
+  width: 100%;
+  min-height: 0;  /* Important for proper flex behavior */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  padding: 20px;
+}
+
+/* Style for the actual PDF page */
+.pdf-page {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;  /* Override react-pdf default width */
+  height: auto !important; /* Override react-pdf default height */
+  object-fit: contain;
 }
 
 .orientation-control {

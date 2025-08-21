@@ -54,10 +54,11 @@ export default function PdfCanvas({ fileUrl, containerRef, onClick }) {
           </button>
         </div>
       </div>
-      <div 
-        ref={containerRef} 
-        className={`pdf-canvas ${orientation}`} 
-        onClick={e => {
+      <div className="pdf-view-container">
+        <div 
+          ref={containerRef} 
+          className={`pdf-canvas ${orientation}`} 
+          onClick={e => {
           if (!containerRef.current) return;
           const r = containerRef.current.getBoundingClientRect();
           const rect = e.target.getBoundingClientRect();
@@ -83,7 +84,10 @@ export default function PdfCanvas({ fileUrl, containerRef, onClick }) {
         >
           <Page 
             pageNumber={pageNumber}
-            width={794} // A4 width
+            className="pdf-page"
+            width={containerRef.current ? 
+              Math.min(1123, containerRef.current.offsetWidth - 80) : 794
+            }
             renderTextLayer={true}
             renderAnnotationLayer={true}
             loading={<div>Loading page...</div>}
