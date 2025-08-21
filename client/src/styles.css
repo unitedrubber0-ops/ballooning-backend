@@ -179,16 +179,71 @@ h1 {
   background: #e0e0e0;
   padding: 20px;
   display: flex;
-  /* justify-content: center; */ /* <-- THIS LINE IS REMOVED */
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
   overflow: auto;
   position: relative;
+}
+
+.pdf-controls {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.balloon-size-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.balloon-size-control input {
+  width: 60px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.balloon-size-control label {
+  color: #555;
+  font-size: 0.9em;
 }
 
 .pdf-canvas {
   background: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   cursor: crosshair;
+  /* A4 size in pixels at 96 DPI */
+  width: 794px;   /* A4 width in pixels */
+  height: 1123px; /* A4 height in pixels */
+}
+
+/* Ensure balloons scale properly with PDF */
+.balloon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(255, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: move;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.balloon:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 0, 0, 1);
 }
 
 .button-group {
